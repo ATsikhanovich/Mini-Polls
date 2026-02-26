@@ -10,6 +10,7 @@ tools:
   - search/searchResults
   - search/usages
   - vscode/vscodeAPI
+model: Claude Opus 4.6 (copilot)
 ---
 
 # Plan Mode - Strategic Planning & Architecture Assistant
