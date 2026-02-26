@@ -1,0 +1,140 @@
+# ============================================================
+# .NET / C# (backend)
+# ============================================================
+
+## Build output
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docview
+
+## NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuspec
+project.lock.json
+artifacts/
+
+## Entity Framework
+*.db
+*.db-shm
+*.db-wal
+**/Migrations/*.Designer.cs
+
+## Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*/
+TestResults/
+
+## Publish output
+**/publish/
+**/[Pp]ublish/
+
+## MSBuild
+*.pidb
+*.svclog
+*.scc
+
+## ReSharper / Rider
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+.idea/
+
+## Roslyn test files
+*.VisualState.xml
+
+# ============================================================
+# Node / npm (frontend)
+# ============================================================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+package-lock.json.bak
+
+## Vite build output
+frontend/dist/
+frontend/.vite/
+
+## TypeScript incremental compilation
+*.tsbuildinfo
+
+## Test / coverage
+frontend/coverage/
+
+# ============================================================
+# Docker
+# ============================================================
+
+.dockerignore.local
+
+# ============================================================
+# Environment & secrets
+# ============================================================
+
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+
+# ============================================================
+# OS & editor artefacts
+# ============================================================
+
+## Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+## macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+## Linux
+*~
+
+## VS Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+
+# ============================================================
+# Misc
+# ============================================================
+
+*.bak
+*.tmp
+*.orig

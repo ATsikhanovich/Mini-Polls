@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MiniPolls.Api/MiniPolls.Api.csproj" />
+    <Project Path="src/MiniPolls.Application/MiniPolls.Application.csproj" />
+    <Project Path="src/MiniPolls.Domain/MiniPolls.Domain.csproj" />
+    <Project Path="src/MiniPolls.Infrastructure/MiniPolls.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MiniPolls.Api.Tests/MiniPolls.Api.Tests.csproj" />
+    <Project Path="tests/MiniPolls.Application.Tests/MiniPolls.Application.Tests.csproj" />
+    <Project Path="tests/MiniPolls.Domain.Tests/MiniPolls.Domain.Tests.csproj" />
+    <Project Path="tests/MiniPolls.Infrastructure.Tests/MiniPolls.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>

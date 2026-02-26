@@ -1,0 +1,6 @@
+@MiniPolls.Api_HostAddress = http://localhost:5218
+
+GET {{MiniPolls.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
