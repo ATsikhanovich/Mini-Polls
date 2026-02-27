@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MiniPolls.Application.Interfaces;
+using MiniPolls.Application.Polls.Services;
 using MiniPolls.Infrastructure.Persistence;
 using MiniPolls.Infrastructure.Persistence.Repositories;
 
@@ -21,6 +22,12 @@ public static class DependencyInjection
 
         services.AddScoped<IPollRepository, PollRepository>();
         services.AddScoped<IVoteRepository, VoteRepository>();
+
+        services.Configure<SlugGenerationOptions>(opts =>
+        {
+            if (int.TryParse(configuration["SlugGeneration:Length"], out var length) && length > 0)
+                opts.Length = length;
+        });
 
         return services;
     }

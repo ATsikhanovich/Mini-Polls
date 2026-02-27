@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using MiniPolls.Domain.Exceptions;
 using System.Net;
 
 namespace MiniPolls.Api.Middleware;
@@ -16,6 +17,11 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             logger.LogWarning("Validation failed: {Errors}", ex.Message);
             await WriteValidationProblem(context, ex);
+        }
+        catch (DomainException ex)
+        {
+            logger.LogWarning("Domain rule violated: {Message}", ex.Message);
+            await WriteDomainError(context, ex);
         }
         catch (Exception ex)
         {
@@ -40,6 +46,22 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             Status = (int)HttpStatusCode.BadRequest,
             Title = "Validation failed",
             Type = "https://tools.ietf.org/html/rfc7807"
+        };
+
+        await context.Response.WriteAsJsonAsync(problem);
+    }
+
+    private static async Task WriteDomainError(HttpContext context, DomainException ex)
+    {
+        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+        context.Response.ContentType = "application/problem+json";
+
+        var problem = new ProblemDetails
+        {
+            Status = (int)HttpStatusCode.BadRequest,
+            Title = "Domain rule violated",
+            Type = "https://tools.ietf.org/html/rfc7807",
+            Detail = ex.Message
         };
 
         await context.Response.WriteAsJsonAsync(problem);
