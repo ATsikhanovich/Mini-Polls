@@ -11,11 +11,14 @@ vi.mock('../../src/api/polls', async (importOriginal) => {
   };
 });
 
+let mockLocationState: unknown = null;
+
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return {
     ...actual,
     useParams: () => ({ slug: 'test1' }),
+    useLocation: () => ({ state: mockLocationState }),
   };
 });
 
@@ -44,6 +47,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockLocationState = null;
 });
 
 describe('ResultsPage', () => {
@@ -107,5 +111,27 @@ describe('ResultsPage', () => {
     mockGetResults.mockRejectedValue(new TypeError('Failed to fetch'));
     renderPage();
     expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
+  });
+
+  it('shows "already voted" banner when route state has alreadyVoted: true', async () => {
+    mockLocationState = { alreadyVoted: true };
+    mockGetResults.mockResolvedValue(resultsFixture);
+    renderPage();
+    expect(await screen.findByText(/already voted/i)).toBeInTheDocument();
+  });
+
+  it('does not show "already voted" banner when route state is absent', async () => {
+    mockGetResults.mockResolvedValue(resultsFixture);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Best language?' });
+    expect(screen.queryByText(/already voted/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show "already voted" banner when route state has alreadyVoted: false', async () => {
+    mockLocationState = { alreadyVoted: false };
+    mockGetResults.mockResolvedValue(resultsFixture);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Best language?' });
+    expect(screen.queryByText(/already voted/i)).not.toBeInTheDocument();
   });
 });

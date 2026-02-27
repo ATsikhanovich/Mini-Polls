@@ -97,6 +97,26 @@ public sealed class CastVoteCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_DuplicateIp_DoesNotCallAddAsync()
+    {
+        // Arrange
+        var poll = Poll.Create("What is best?", ["Option A", "Option B"], "dup-no-add", "mgmt-token");
+        var optionId = poll.Options.First().Id;
+
+        _pollRepository.GetBySlugAsync("dup-no-add", Arg.Any<CancellationToken>()).Returns(poll);
+        _voteRepository.HasVotedAsync(poll.Id, "1.2.3.4", Arg.Any<CancellationToken>()).Returns(true);
+
+        var command = new CastVoteCommand("dup-no-add", optionId, "1.2.3.4");
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<DuplicateVoteException>();
+        await _voteRepository.DidNotReceive().AddAsync(Arg.Any<Vote>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Handle_InvalidOptionId_ThrowsDomainException()
     {
         // Arrange

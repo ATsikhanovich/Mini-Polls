@@ -4,6 +4,8 @@ description: Start backend and frontend dev servers, verify both are up, and ope
 argument-hint: Optional port numbers or startup commands if they differ from project defaults.
 tools: [read, search, execute]
 ---
+model: Grok Code Fast 1
+---
 Start the backend and frontend development servers for the current project.
 
 Steps to follow:

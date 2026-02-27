@@ -51,6 +51,14 @@ public sealed class CastVoteEndpointTests : IClassFixture<MiniPollsWebApplicatio
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+
+        var body = await response.Content.ReadFromJsonAsync<DuplicateVoteResultResponse>();
+        body.Should().NotBeNull();
+        body!.Message.Should().NotBeNullOrWhiteSpace();
+        body.Results.Should().NotBeNull();
+        body.Results.Question.Should().Be("Dup vote poll");
+        body.Results.TotalVotes.Should().BeGreaterThanOrEqualTo(1);
+        body.Results.Options.Should().HaveCount(2);
     }
 
     [Fact]
@@ -123,4 +131,7 @@ public sealed class CastVoteEndpointTests : IClassFixture<MiniPollsWebApplicatio
     private sealed record PollOptionDtoResponse(Guid Id, string Text, int SortOrder);
     private sealed record PollDtoResponse(Guid Id, string Question, string Slug, bool IsClosed, List<PollOptionDtoResponse> Options);
     private sealed record CastVoteResultResponse(Guid VoteId, Guid PollOptionId, DateTimeOffset CastAt);
+    private sealed record DuplicateVoteResultResponse(string Message, ResultsResponse Results);
+    private sealed record ResultsResponse(string Question, bool IsClosed, int TotalVotes, List<OptionResultResponse> Options);
+    private sealed record OptionResultResponse(Guid Id, string Text, int VoteCount, double Percentage);
 }

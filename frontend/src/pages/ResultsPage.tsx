@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { getResults, ApiError } from '../api/polls';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
@@ -7,8 +7,15 @@ import { ErrorMessage } from '../components/ErrorMessage';
 import type { PollResults } from '../types/poll';
 import NotFoundPage from './NotFoundPage';
 
+type ResultsRouteState = {
+  alreadyVoted?: boolean;
+};
+
 export default function ResultsPage() {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
+  const routeState = location.state as ResultsRouteState | null;
+  const alreadyVoted = routeState?.alreadyVoted === true;
 
   const [results, setResults] = useState<PollResults | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +70,15 @@ export default function ResultsPage() {
         <h1 className="text-2xl font-bold text-[#f8f8f8] tracking-tight">{results.question}</h1>
         {results.isClosed && <StatusBadge status="closed" />}
       </div>
+
+      {alreadyVoted && (
+        <div
+          role="status"
+          className="bg-primary-500/10 border border-primary-500/30 text-primary-300 text-sm rounded-lg px-4 py-3 mb-4"
+        >
+          You have already voted on this poll.
+        </div>
+      )}
 
       <p className="text-sm text-white/60 mb-4">
         {results.totalVotes} vote{results.totalVotes !== 1 ? 's' : ''} total

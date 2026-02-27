@@ -28,11 +28,6 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             logger.LogWarning("Poll is closed: {Message}", ex.Message);
             await WriteProblem(context, (int)HttpStatusCode.Gone, "Poll is closed", ex.Message);
         }
-        catch (DuplicateVoteException ex)
-        {
-            logger.LogWarning("Duplicate vote: {Message}", ex.Message);
-            await WriteProblem(context, (int)HttpStatusCode.Conflict, "Duplicate vote", ex.Message);
-        }
         catch (DomainException ex)
         {
             logger.LogWarning("Domain rule violated: {Message}", ex.Message);

@@ -94,4 +94,9 @@ test.describe('Results page', () => {
     await page.goto('/p/test1/results');
     await expect(page.getByText(/something went wrong/i)).toBeVisible();
   });
+
+  test('does not show "already voted" banner on direct navigation', async ({ page }) => {
+    await page.goto('/p/test1/results');
+    await expect(page.getByText(/already voted/i)).not.toBeVisible();
+  });
 });

@@ -160,6 +160,7 @@ test.describe('Vote page', () => {
     });
     await page.goto('/p/test1');
     await expect(page).toHaveURL(/\/p\/test1\/results/);
+    await expect(page.getByText(/already voted/i)).toBeVisible();
   });
 
   test('redirects to results when poll isClosed is true', async ({ page }) => {
@@ -193,10 +194,18 @@ test.describe('Vote page', () => {
 
   test('navigates to results on 409 from castVote', async ({ page }) => {
     await page.route('**/api/polls/*/votes', (route) => {
-      route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({}) });
+      route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          message: 'You have already voted on this poll.',
+          results: defaultResults,
+        }),
+      });
     });
     await page.getByText('TypeScript').click();
     await page.getByRole('button', { name: /^vote$/i }).click();
     await expect(page).toHaveURL(/\/p\/test1\/results/);
+    await expect(page.getByText(/already voted/i)).toBeVisible();
   });
 });

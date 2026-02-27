@@ -5,6 +5,7 @@ using MiniPolls.Application.Polls.GetPollBySlug;
 using MiniPolls.Application.Votes.CastVote;
 using MiniPolls.Application.Votes.CheckVote;
 using MiniPolls.Application.Votes.GetResults;
+using MiniPolls.Domain.Exceptions;
 
 namespace MiniPolls.Api.Controllers;
 
@@ -14,6 +15,10 @@ public sealed record CreatePollRequest(
     DateTimeOffset? ExpiresAt);
 
 public sealed record CastVoteRequest(Guid OptionId);
+
+public sealed record DuplicateVoteResponse(
+    string Message,
+    PollResultsDto Results);
 
 [ApiController]
 [Route("api/polls")]
@@ -53,8 +58,17 @@ public sealed class PollsController(IMediator mediator) : ControllerBase
     {
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var command = new CastVoteCommand(slug, request.OptionId, ipAddress);
-        var result = await mediator.Send(command, cancellationToken);
-        return Ok(result);
+
+        try
+        {
+            var result = await mediator.Send(command, cancellationToken);
+            return Ok(result);
+        }
+        catch (DuplicateVoteException)
+        {
+            var results = await mediator.Send(new GetResultsQuery(slug), cancellationToken);
+            return Conflict(new DuplicateVoteResponse("You have already voted on this poll.", results!));
+        }
     }
 
     [HttpGet("{slug}/results")]

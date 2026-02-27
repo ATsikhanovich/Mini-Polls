@@ -44,14 +44,14 @@ export default function VotePage() {
       if (cancelled) return;
 
       if (fetchedPoll.isClosed) {
-        navigate(`/p/${slug}/results`, { replace: true });
+        navigate(`/p/${slug}/results`, { replace: true, state: { pollClosed: true } });
         return;
       }
 
       try {
         const voteCheck = await checkVote(slug!);
         if (!cancelled && voteCheck.hasVoted) {
-          navigate(`/p/${slug}/results`, { replace: true });
+          navigate(`/p/${slug}/results`, { replace: true, state: { alreadyVoted: true } });
           return;
         }
       } catch {
@@ -79,8 +79,10 @@ export default function VotePage() {
       navigate(`/p/${slug}/results`);
     } catch (err) {
       if (err instanceof ApiError) {
-        if (err.status === 409 || err.status === 410) {
-          navigate(`/p/${slug}/results`);
+        if (err.status === 409) {
+          navigate(`/p/${slug}/results`, { state: { alreadyVoted: true } });
+        } else if (err.status === 410) {
+          navigate(`/p/${slug}/results`, { state: { pollClosed: true } });
         } else if (err.status === 404) {
           setNotFound(true);
         } else {

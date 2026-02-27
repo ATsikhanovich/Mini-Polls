@@ -4,7 +4,7 @@ description: Create a detailed backend implementation plan for a specific user s
 argument-hint: The user story ID or description to plan the backend implementation for.
 tools: [edit/createFile, read, search, search/listDirectory]
 ---
-You are a planning agent. Given a product requirements document (PRD) and an existing codebase, create a detailed, actionable backend implementation plan for the specified user story.
+You are a planning agent. Given a product requirements document (PRD) and an existing codebase, create a detailed, actionable backend implementation plan for the specified user story **ONLY**.
 
 Follow this workflow:
 

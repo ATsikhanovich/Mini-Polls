@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -123,7 +123,10 @@ describe('VotePage', () => {
     await user.click(await screen.findByText('TypeScript'));
     await user.click(screen.getByRole('button', { name: /^vote$/i }));
     expect(await screen.findByRole('button', { name: /voting/i })).toBeDisabled();
-    resolveVote();
+    await act(async () => {
+      resolveVote();
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: /^vote$/i })).toBeEnabled());
   });
 
   it('navigates to results with replace:true when checkVote returns hasVoted: true', async () => {
@@ -131,7 +134,7 @@ describe('VotePage', () => {
     mockCheckVote.mockResolvedValue({ hasVoted: true });
     renderPage();
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results', { replace: true }),
+      expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results', { replace: true, state: { alreadyVoted: true } }),
     );
   });
 
@@ -139,7 +142,7 @@ describe('VotePage', () => {
     mockGetPollBySlug.mockResolvedValue({ ...activePoll, isClosed: true });
     renderPage();
     await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results', { replace: true }),
+      expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results', { replace: true, state: { pollClosed: true } }),
     );
   });
 
@@ -165,7 +168,7 @@ describe('VotePage', () => {
     renderPage();
     await user.click(await screen.findByText('TypeScript'));
     await user.click(screen.getByRole('button', { name: /^vote$/i }));
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results', { state: { alreadyVoted: true } }));
   });
 
   it('navigates to results on ApiError(410) during vote submission', async () => {
@@ -175,7 +178,7 @@ describe('VotePage', () => {
     renderPage();
     await user.click(await screen.findByText('TypeScript'));
     await user.click(screen.getByRole('button', { name: /^vote$/i }));
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/p/test1/results', { state: { pollClosed: true } }));
   });
 
   it('sets notFound on ApiError(404) during vote submission', async () => {

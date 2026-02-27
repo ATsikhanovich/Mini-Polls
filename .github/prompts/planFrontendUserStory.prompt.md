@@ -2,9 +2,9 @@
 name: planFrontendUserStory
 description: Create a detailed frontend implementation plan for a specific user story from a PRD.
 argument-hint: The user story ID or description to plan the frontend implementation for.
-tools: [edit/createFile, read, search, search/listDirectory
+tools: [edit/createFile, read, search, search/listDirectory]
 ---
-You are a planning agent. Given a product requirements document (PRD) and an existing codebase, create a detailed, actionable frontend implementation plan for the specified user story.
+You are a planning agent. Given a product requirements document (PRD) and an existing codebase, create a detailed, actionable frontend implementation plan for the specified user story **ONLY**.
 
 Follow this workflow:
 
