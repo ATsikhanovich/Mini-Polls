@@ -1,5 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
+// Node.js global — typed locally to avoid requiring @types/node
+declare function setTimeout(callback: () => void, ms: number): unknown;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -178,7 +181,7 @@ test.describe('Create Poll page', () => {
   test('button shows "Creating…" while request is in flight', async ({ page }) => {
     // Delay the response slightly so we can observe the loading state
     await page.route('**/api/polls', async (route) => {
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise<void>(r => setTimeout(r, 300));
       route.fulfill({
         status: 201,
         contentType: 'application/json',

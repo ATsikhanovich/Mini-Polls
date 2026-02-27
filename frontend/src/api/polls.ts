@@ -40,7 +40,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-import type { CreatePollRequest, CreatePollResponse } from '../types/poll';
+import type {
+  CreatePollRequest,
+  CreatePollResponse,
+  Poll,
+  CastVoteRequest,
+  CastVoteResponse,
+  VoteCheckResponse,
+  PollResults,
+} from '../types/poll';
 
 // ---------------------------------------------------------------------------
 // Polls
@@ -54,17 +62,27 @@ export function createPoll(data: CreatePollRequest): Promise<CreatePollResponse>
   });
 }
 
-// GET  /api/polls/by-slug/{slug} — Load poll for voting page
-// GET  /api/polls/by-token/{token} — Load poll for management page
-// PUT  /api/polls/{token}/expiration — Set/update expiration
-// POST /api/polls/{token}/close — Close a poll
+/** GET /api/polls/by-slug/{slug} — Load poll for voting page */
+export function getPollBySlug(slug: string): Promise<Poll> {
+  return request<Poll>(`/polls/by-slug/${slug}`);
+}
 
-// ---------------------------------------------------------------------------
-// Votes
-// ---------------------------------------------------------------------------
+/** POST /api/polls/{slug}/votes — Cast a vote */
+export function castVote(slug: string, data: CastVoteRequest): Promise<CastVoteResponse> {
+  return request<CastVoteResponse>(`/polls/${slug}/votes`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
 
-// POST /api/polls/{slug}/votes — Cast a vote
-// GET  /api/polls/{slug}/results — Get aggregated results
-// GET  /api/polls/{slug}/vote-check — Check if current IP already voted
+/** GET /api/polls/{slug}/vote-check — Check if current IP already voted */
+export function checkVote(slug: string): Promise<VoteCheckResponse> {
+  return request<VoteCheckResponse>(`/polls/${slug}/vote-check`);
+}
+
+/** GET /api/polls/{slug}/results — Get aggregated results */
+export function getResults(slug: string): Promise<PollResults> {
+  return request<PollResults>(`/polls/${slug}/results`);
+}
 
 export { request };

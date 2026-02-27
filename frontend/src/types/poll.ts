@@ -3,9 +3,8 @@ export interface Poll {
   question: string;
   slug: string;
   expiresAt: string | null; // ISO 8601
-  closedAt: string | null; // ISO 8601
+  isClosed: boolean;
   createdAt: string; // ISO 8601
-  status: 'active' | 'closed' | 'expired';
   options: PollOption[];
 }
 
@@ -16,18 +15,23 @@ export interface PollOption {
 }
 
 export interface PollResults {
-  pollId: string;
   question: string;
-  status: 'active' | 'closed' | 'expired';
+  isClosed: boolean;
   totalVotes: number;
   options: OptionResult[];
 }
 
 export interface OptionResult {
-  optionId: string;
+  id: string;
   text: string;
   voteCount: number;
   percentage: number;
+}
+
+export interface CastVoteResponse {
+  voteId: string;
+  pollOptionId: string;
+  castAt: string; // ISO 8601
 }
 
 export interface CreatePollRequest {

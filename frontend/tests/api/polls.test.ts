@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createPoll, ApiError } from '../../src/api/polls';
+import { createPoll, getPollBySlug, castVote, checkVote, getResults, ApiError } from '../../src/api/polls';
 
 const mockFetch = vi.fn<typeof fetch>();
 
@@ -74,5 +74,239 @@ describe('createPoll', () => {
     mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
     await expect(createPoll({ question: 'Q?', options: ['A', 'B'] })).rejects.toThrow(TypeError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getPollBySlug
+// ---------------------------------------------------------------------------
+
+describe('getPollBySlug', () => {
+  const pollPayload = {
+    id: 'poll-1',
+    question: 'Favourite colour?',
+    slug: 'fav-col',
+    expiresAt: null,
+    isClosed: false,
+    createdAt: '2026-01-01T00:00:00Z',
+    options: [
+      { id: 'opt-1', text: 'Red', sortOrder: 0 },
+      { id: 'opt-2', text: 'Blue', sortOrder: 1 },
+    ],
+  };
+
+  it('sends GET to /polls/by-slug/{slug} with Content-Type header', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(pollPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await getPollBySlug('fav-col');
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/by-slug\/fav-col$/);
+    expect((init?.method ?? 'GET').toUpperCase()).not.toBe('POST');
+    const headers = init?.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+  });
+
+  it('returns parsed Poll on 200', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(pollPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await getPollBySlug('fav-col');
+    expect(result).toEqual(pollPayload);
+  });
+
+  it('throws ApiError with status 404 when poll not found', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(getPollBySlug('missing')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('throws on network failure', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(getPollBySlug('fav-col')).rejects.toThrow(TypeError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// castVote
+// ---------------------------------------------------------------------------
+
+describe('castVote', () => {
+  const voteResponse = {
+    voteId: 'vote-1',
+    pollOptionId: 'opt-1',
+    castAt: '2026-01-01T12:00:00Z',
+  };
+
+  it('sends POST to /polls/{slug}/votes with JSON body containing optionId', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(voteResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await castVote('test1', { optionId: 'opt-1' });
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/test1\/votes$/);
+    expect(init.method).toBe('POST');
+    expect(init.body).toBe(JSON.stringify({ optionId: 'opt-1' }));
+  });
+
+  it('returns CastVoteResponse on 200', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(voteResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await castVote('test1', { optionId: 'opt-1' });
+    expect(result).toEqual(voteResponse);
+  });
+
+  it('throws ApiError with status 409 on duplicate vote', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Already voted' }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(castVote('test1', { optionId: 'opt-1' })).rejects.toMatchObject({ status: 409 });
+  });
+
+  it('throws ApiError with status 410 on closed poll', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Poll closed' }), {
+        status: 410,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(castVote('test1', { optionId: 'opt-1' })).rejects.toMatchObject({ status: 410 });
+  });
+
+  it('throws ApiError with status 404 on unknown slug', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(castVote('missing', { optionId: 'opt-1' })).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// checkVote
+// ---------------------------------------------------------------------------
+
+describe('checkVote', () => {
+  it('sends GET to /polls/{slug}/vote-check', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ hasVoted: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await checkVote('test1');
+
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/test1\/vote-check$/);
+  });
+
+  it('returns { hasVoted: false } when not voted', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ hasVoted: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await checkVote('test1');
+    expect(result).toEqual({ hasVoted: false });
+  });
+
+  it('returns { hasVoted: true } when already voted', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ hasVoted: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await checkVote('test1');
+    expect(result).toEqual({ hasVoted: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getResults
+// ---------------------------------------------------------------------------
+
+describe('getResults', () => {
+  const resultsPayload = {
+    question: 'Favourite colour?',
+    isClosed: false,
+    totalVotes: 3,
+    options: [
+      { id: 'opt-1', text: 'Red', voteCount: 2, percentage: 66.7 },
+      { id: 'opt-2', text: 'Blue', voteCount: 1, percentage: 33.3 },
+    ],
+  };
+
+  it('sends GET to /polls/{slug}/results', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(resultsPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await getResults('test1');
+
+    const [url] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/test1\/results$/);
+  });
+
+  it('returns parsed PollResults on 200', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(resultsPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await getResults('test1');
+    expect(result).toEqual(resultsPayload);
+  });
+
+  it('throws ApiError with status 404 when poll not found', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(getResults('missing')).rejects.toMatchObject({ status: 404 });
   });
 });
