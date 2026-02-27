@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MiniPolls.Application.Polls.CreatePoll;
+using MiniPolls.Application.Polls.GetPollByManagementToken;
 using MiniPolls.Application.Polls.GetPollBySlug;
 using MiniPolls.Application.Votes.CastVote;
 using MiniPolls.Application.Votes.CheckVote;
@@ -43,6 +44,17 @@ public sealed class PollsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetPollBySlug(string slug, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetPollBySlugQuery(slug), cancellationToken);
+
+        if (result is null)
+            return NotFound();
+
+        return Ok(result);
+    }
+
+    [HttpGet("by-token/{token}")]
+    public async Task<IActionResult> GetPollByManagementToken(string token, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetPollByManagementTokenQuery(token), cancellationToken);
 
         if (result is null)
             return NotFound();

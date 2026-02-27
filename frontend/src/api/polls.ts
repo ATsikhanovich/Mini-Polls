@@ -48,6 +48,7 @@ import type {
   CastVoteResponse,
   VoteCheckResponse,
   PollResults,
+  ManagementPoll,
 } from '../types/poll';
 
 // ---------------------------------------------------------------------------
@@ -83,6 +84,11 @@ export function checkVote(slug: string): Promise<VoteCheckResponse> {
 /** GET /api/polls/{slug}/results — Get aggregated results */
 export function getResults(slug: string): Promise<PollResults> {
   return request<PollResults>(`/polls/${slug}/results`);
+}
+
+/** GET /api/polls/by-token/{token} — Load poll for management page */
+export function getPollByManagementToken(token: string): Promise<ManagementPoll> {
+  return request<ManagementPoll>(`/polls/by-token/${token}`);
 }
 
 export { request };

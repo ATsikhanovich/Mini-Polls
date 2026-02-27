@@ -28,6 +28,26 @@ export interface OptionResult {
   percentage: number;
 }
 
+export interface ManagementOption {
+  id: string;
+  text: string;
+  sortOrder: number;
+  voteCount: number;
+  percentage: number;
+}
+
+export interface ManagementPoll {
+  id: string;
+  question: string;
+  slug: string;
+  isClosed: boolean;
+  expiresAt: string | null;
+  closedAt: string | null;
+  createdAt: string;
+  totalVotes: number;
+  options: ManagementOption[];
+}
+
 export interface CastVoteResponse {
   voteId: string;
   pollOptionId: string;

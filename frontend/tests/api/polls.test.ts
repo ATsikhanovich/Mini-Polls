@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createPoll, getPollBySlug, castVote, checkVote, getResults, ApiError } from '../../src/api/polls';
+import { createPoll, getPollBySlug, castVote, checkVote, getResults, getPollByManagementToken, ApiError } from '../../src/api/polls';
 
 const mockFetch = vi.fn<typeof fetch>();
 
@@ -308,5 +308,71 @@ describe('getResults', () => {
     );
 
     await expect(getResults('missing')).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getPollByManagementToken
+// ---------------------------------------------------------------------------
+
+describe('getPollByManagementToken', () => {
+  const managementPollPayload = {
+    id: 'poll-1',
+    question: 'Best colour?',
+    slug: 'col12',
+    isClosed: false,
+    expiresAt: null,
+    closedAt: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    totalVotes: 3,
+    options: [
+      { id: 'opt-1', text: 'Red', sortOrder: 0, voteCount: 2, percentage: 66.7 },
+      { id: 'opt-2', text: 'Blue', sortOrder: 1, voteCount: 1, percentage: 33.3 },
+    ],
+  };
+
+  it('sends GET to /polls/by-token/{token} with Content-Type header', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(managementPollPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await getPollByManagementToken('my-token');
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/by-token\/my-token$/);
+    expect((init?.method ?? 'GET').toUpperCase()).not.toBe('POST');
+    const headers = init?.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+  });
+
+  it('returns parsed ManagementPoll on 200', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(managementPollPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await getPollByManagementToken('my-token');
+    expect(result).toEqual(managementPollPayload);
+  });
+
+  it('throws ApiError with status 404 when token not found', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(getPollByManagementToken('missing')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('throws on network failure', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(getPollByManagementToken('my-token')).rejects.toThrow(TypeError);
   });
 });
