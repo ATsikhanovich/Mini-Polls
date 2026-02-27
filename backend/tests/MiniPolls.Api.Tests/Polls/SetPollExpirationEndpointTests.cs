@@ -79,6 +79,12 @@ public sealed class SetPollExpirationEndpointTests : IClassFixture<MiniPollsWebA
             new { expiresAt = DateTimeOffset.UtcNow.AddHours(1) });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be((int)HttpStatusCode.NotFound);
+        body.Title.Should().Be("Poll not found");
+        body.Detail.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -201,4 +207,6 @@ public sealed class SetPollExpirationEndpointTests : IClassFixture<MiniPollsWebA
         DateTimeOffset? ExpiresAt,
         DateTimeOffset CreatedAt,
         IReadOnlyList<PollOptionDtoResponse> Options);
+
+    private sealed record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

@@ -83,8 +83,8 @@ test.describe('Results page', () => {
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({}) });
     });
     await page.goto('/p/test1/results');
-    // NotFoundPage rendered — heading from results should not be visible
-    await expect(page.getByRole('heading', { name: 'Best language?' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: /poll not found/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /create a poll/i })).toBeVisible();
   });
 
   test('shows generic error on network failure', async ({ page }) => {

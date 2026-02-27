@@ -1,17 +1,18 @@
 using MediatR;
 using MiniPolls.Application.Interfaces;
+using MiniPolls.Domain.Exceptions;
 
 namespace MiniPolls.Application.Polls.GetPollByManagementToken;
 
 public sealed class GetPollByManagementTokenQueryHandler(IPollRepository pollRepository)
-    : IRequestHandler<GetPollByManagementTokenQuery, ManagementPollDto?>
+    : IRequestHandler<GetPollByManagementTokenQuery, ManagementPollDto>
 {
-    public async Task<ManagementPollDto?> Handle(GetPollByManagementTokenQuery request, CancellationToken cancellationToken)
+    public async Task<ManagementPollDto> Handle(GetPollByManagementTokenQuery request, CancellationToken cancellationToken)
     {
         var poll = await pollRepository.GetByManagementTokenAsync(request.Token, cancellationToken);
 
         if (poll is null)
-            return null;
+            throw PollNotFoundException.ForManagementToken();
 
         var totalVotes = poll.Options.Sum(o => o.Votes.Count);
 

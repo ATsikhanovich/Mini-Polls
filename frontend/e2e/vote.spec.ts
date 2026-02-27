@@ -180,8 +180,8 @@ test.describe('Vote page', () => {
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({}) });
     });
     await page.goto('/p/test1');
-    // NotFoundPage is currently a stub; just verify the question heading is absent
-    await expect(page.getByRole('heading', { name: 'Best language?' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: /poll not found/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /create a poll/i })).toBeVisible();
   });
 
   test('shows generic error on network failure from getPollBySlug', async ({ page }) => {

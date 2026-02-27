@@ -12,7 +12,7 @@ public sealed class ClosePollCommandHandler(IPollRepository pollRepository)
         var poll = await pollRepository.GetByManagementTokenAsync(request.Token, cancellationToken);
 
         if (poll is null)
-            throw new PollNotFoundException(request.Token);
+            throw PollNotFoundException.ForManagementToken();
 
         poll.Close();
         await pollRepository.UpdateAsync(poll, cancellationToken);

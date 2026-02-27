@@ -2,4 +2,4 @@ using MediatR;
 
 namespace MiniPolls.Application.Polls.GetPollBySlug;
 
-public sealed record GetPollBySlugQuery(string Slug) : IRequest<PollDto?>;
+public sealed record GetPollBySlugQuery(string Slug) : IRequest<PollDto>;

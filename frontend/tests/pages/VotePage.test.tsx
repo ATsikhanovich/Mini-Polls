@@ -149,8 +149,8 @@ describe('VotePage', () => {
   it('renders NotFoundPage content when getPollBySlug throws ApiError(404)', async () => {
     mockGetPollBySlug.mockRejectedValue(new ApiError(404, null));
     renderPage();
-    // NotFoundPage is a stub <div /> — just check it doesn't crash and "Loading" disappears
-    await waitFor(() => expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument());
+    expect(await screen.findByRole('heading', { name: /poll not found/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /create a poll/i })).toBeInTheDocument();
   });
 
   it('shows generic error message when getPollBySlug throws a network error', async () => {
@@ -188,7 +188,6 @@ describe('VotePage', () => {
     renderPage();
     await user.click(await screen.findByText('TypeScript'));
     await user.click(screen.getByRole('button', { name: /^vote$/i }));
-    // NotFoundPage renders — "Loading" is gone
-    await waitFor(() => expect(screen.queryByText('Best language?')).not.toBeInTheDocument());
+    expect(await screen.findByRole('heading', { name: /poll not found/i })).toBeInTheDocument();
   });
 });

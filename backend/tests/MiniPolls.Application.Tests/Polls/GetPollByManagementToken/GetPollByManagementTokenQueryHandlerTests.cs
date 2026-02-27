@@ -2,6 +2,7 @@ using FluentAssertions;
 using MiniPolls.Application.Interfaces;
 using MiniPolls.Application.Polls.GetPollByManagementToken;
 using MiniPolls.Domain.Entities;
+using MiniPolls.Domain.Exceptions;
 using NSubstitute;
 
 namespace MiniPolls.Application.Tests.Polls.GetPollByManagementToken;
@@ -77,16 +78,14 @@ public sealed class GetPollByManagementTokenQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_InvalidToken_ReturnsNull()
+    public async Task Handle_InvalidToken_ThrowsPollNotFoundException()
     {
         // Arrange
         _pollRepository.GetByManagementTokenAsync("missing", Arg.Any<CancellationToken>()).Returns((Poll?)null);
-
-        // Act
-        var result = await _handler.Handle(new GetPollByManagementTokenQuery("missing"), CancellationToken.None);
+        var act = () => _handler.Handle(new GetPollByManagementTokenQuery("missing"), CancellationToken.None);
 
         // Assert
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<PollNotFoundException>();
     }
 
     [Fact]

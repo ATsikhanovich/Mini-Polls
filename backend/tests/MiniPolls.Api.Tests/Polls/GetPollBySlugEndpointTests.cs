@@ -48,9 +48,16 @@ public sealed class GetPollBySlugEndpointTests : IClassFixture<MiniPollsWebAppli
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be((int)HttpStatusCode.NotFound);
+        body.Title.Should().Be("Poll not found");
+        body.Detail.Should().NotBeNullOrWhiteSpace();
     }
 
     private sealed record CreatePollResponse(Guid Id, string Slug, string ManagementToken);
     private sealed record PollOptionDtoResponse(Guid Id, string Text, int SortOrder);
     private sealed record PollDtoResponse(Guid Id, string Question, string Slug, bool IsClosed, IReadOnlyList<PollOptionDtoResponse> Options);
+    private sealed record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

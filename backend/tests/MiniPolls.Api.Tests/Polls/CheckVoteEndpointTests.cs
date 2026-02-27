@@ -62,8 +62,24 @@ public sealed class CheckVoteEndpointTests : IClassFixture<MiniPollsWebApplicati
         body!.HasVoted.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task Get_NonExistentSlug_Returns404()
+    {
+        // Act
+        var response = await _client.GetAsync("/api/polls/definitely-not-there/vote-check");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be((int)HttpStatusCode.NotFound);
+        body.Title.Should().ContainEquivalentOf("not found");
+    }
+
     private sealed record CreatePollResponse(Guid Id, string Slug, string ManagementToken);
     private sealed record PollOptionDtoResponse(Guid Id, string Text, int SortOrder);
     private sealed record PollDtoResponse(Guid Id, string Question, string Slug, bool IsClosed, List<PollOptionDtoResponse> Options);
     private sealed record VoteCheckResponse(bool HasVoted);
+    private sealed record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

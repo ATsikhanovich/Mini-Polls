@@ -119,7 +119,8 @@ test.describe('Manage page', () => {
       route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({}) });
     });
     await page.goto('/manage/bad-token');
-    await expect(page.getByRole('heading', { name: 'Best colour?' })).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: /poll not found/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /create a poll/i })).toBeVisible();
   });
 
   test('shows generic error on network failure', async ({ page }) => {

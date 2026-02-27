@@ -65,6 +65,12 @@ public sealed class ClosePollEndpointTests : IClassFixture<MiniPollsWebApplicati
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be((int)HttpStatusCode.NotFound);
+        body.Title.Should().Be("Poll not found");
+        body.Detail.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -163,4 +169,5 @@ public sealed class ClosePollEndpointTests : IClassFixture<MiniPollsWebApplicati
         IReadOnlyList<ManagementOptionResponse> Options);
     private sealed record ResultsResponse(Guid PollId, string Question, bool IsClosed, int TotalVotes, IReadOnlyList<ResultsOptionResponse> Options);
     private sealed record ResultsOptionResponse(Guid Id, string Text, int VoteCount, double Percentage);
+    private sealed record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

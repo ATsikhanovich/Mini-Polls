@@ -13,7 +13,7 @@ public sealed class CheckVoteQueryHandler(
         var poll = await pollRepository.GetBySlugAsync(request.Slug, cancellationToken);
 
         if (poll is null)
-            throw new PollNotFoundException(request.Slug);
+            throw PollNotFoundException.ForSlug(request.Slug);
 
         return await voteRepository.HasVotedAsync(poll.Id, request.IpAddress, cancellationToken);
     }

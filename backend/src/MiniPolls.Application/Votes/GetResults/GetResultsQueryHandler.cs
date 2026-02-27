@@ -1,17 +1,18 @@
 using MediatR;
 using MiniPolls.Application.Interfaces;
+using MiniPolls.Domain.Exceptions;
 
 namespace MiniPolls.Application.Votes.GetResults;
 
 public sealed class GetResultsQueryHandler(IPollRepository pollRepository)
-    : IRequestHandler<GetResultsQuery, PollResultsDto?>
+    : IRequestHandler<GetResultsQuery, PollResultsDto>
 {
-    public async Task<PollResultsDto?> Handle(GetResultsQuery request, CancellationToken cancellationToken)
+    public async Task<PollResultsDto> Handle(GetResultsQuery request, CancellationToken cancellationToken)
     {
         var poll = await pollRepository.GetBySlugAsync(request.Slug, cancellationToken);
 
         if (poll is null)
-            return null;
+            throw PollNotFoundException.ForSlug(request.Slug);
 
         var totalVotes = poll.Options.Sum(o => o.Votes.Count);
 

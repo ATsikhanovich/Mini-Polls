@@ -81,6 +81,12 @@ public sealed class GetResultsEndpointTests : IClassFixture<MiniPollsWebApplicat
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be((int)HttpStatusCode.NotFound);
+        body.Title.Should().Be("Poll not found");
+        body.Detail.Should().NotBeNullOrWhiteSpace();
     }
 
     private sealed record CreatePollResponse(Guid Id, string Slug, string ManagementToken);
@@ -88,4 +94,5 @@ public sealed class GetResultsEndpointTests : IClassFixture<MiniPollsWebApplicat
     private sealed record PollDtoResponse(Guid Id, string Question, string Slug, bool IsClosed, List<PollOptionDtoResponse> Options);
     private sealed record OptionResultResponse(Guid Id, string Text, int VoteCount, double Percentage);
     private sealed record PollResultsResponse(string Question, bool IsClosed, int TotalVotes, List<OptionResultResponse> Options);
+    private sealed record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

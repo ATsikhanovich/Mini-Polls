@@ -104,7 +104,8 @@ describe('ResultsPage', () => {
   it('renders NotFoundPage content when getResults throws ApiError(404)', async () => {
     mockGetResults.mockRejectedValue(new ApiError(404, null));
     renderPage();
-    await waitFor(() => expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument());
+    expect(await screen.findByRole('heading', { name: /poll not found/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /create a poll/i })).toBeInTheDocument();
   });
 
   it('shows generic error message on network failure', async () => {

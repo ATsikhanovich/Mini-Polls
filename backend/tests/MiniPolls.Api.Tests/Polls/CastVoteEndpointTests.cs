@@ -95,6 +95,12 @@ public sealed class CastVoteEndpointTests : IClassFixture<MiniPollsWebApplicatio
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        body.Should().NotBeNull();
+        body!.Status.Should().Be((int)HttpStatusCode.NotFound);
+        body.Title.Should().Be("Poll not found");
+        body.Detail.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -134,4 +140,5 @@ public sealed class CastVoteEndpointTests : IClassFixture<MiniPollsWebApplicatio
     private sealed record DuplicateVoteResultResponse(string Message, ResultsResponse Results);
     private sealed record ResultsResponse(string Question, bool IsClosed, int TotalVotes, List<OptionResultResponse> Options);
     private sealed record OptionResultResponse(Guid Id, string Text, int VoteCount, double Percentage);
+    private sealed record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

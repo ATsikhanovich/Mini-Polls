@@ -14,7 +14,7 @@ public sealed class SetPollExpirationCommandHandler(IPollRepository pollReposito
         var poll = await pollRepository.GetByManagementTokenAsync(request.Token, cancellationToken);
 
         if (poll is null)
-            throw new PollNotFoundException(request.Token);
+            throw PollNotFoundException.ForManagementToken();
 
         poll.SetExpiration(request.ExpiresAt);
         await pollRepository.UpdateAsync(poll, cancellationToken);

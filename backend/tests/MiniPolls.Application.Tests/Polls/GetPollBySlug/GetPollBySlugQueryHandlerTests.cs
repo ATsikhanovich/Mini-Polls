@@ -2,6 +2,7 @@ using FluentAssertions;
 using MiniPolls.Application.Interfaces;
 using MiniPolls.Application.Polls.GetPollBySlug;
 using MiniPolls.Domain.Entities;
+using MiniPolls.Domain.Exceptions;
 using NSubstitute;
 
 namespace MiniPolls.Application.Tests.Polls.GetPollBySlug;
@@ -41,15 +42,13 @@ public sealed class GetPollBySlugQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NonExistentSlug_ReturnsNull()
+    public async Task Handle_NonExistentSlug_ThrowsPollNotFoundException()
     {
         // Arrange
         _pollRepository.GetBySlugAsync("missing", Arg.Any<CancellationToken>()).Returns((Poll?)null);
-
-        // Act
-        var result = await _handler.Handle(new GetPollBySlugQuery("missing"), CancellationToken.None);
+        var act = () => _handler.Handle(new GetPollBySlugQuery("missing"), CancellationToken.None);
 
         // Assert
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<PollNotFoundException>();
     }
 }

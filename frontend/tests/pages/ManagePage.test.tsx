@@ -129,8 +129,8 @@ describe('ManagePage', () => {
   it('renders NotFoundPage on 404', async () => {
     mockGetPollByManagementToken.mockRejectedValue(new ApiError(404, null));
     renderPage();
-    await waitFor(() => expect(screen.queryByText(/Loading/i)).toBeNull());
-    expect(screen.queryByRole('heading', { name: 'Best colour?' })).toBeNull();
+    expect(await screen.findByRole('heading', { name: /poll not found/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /create a poll/i })).toBeTruthy();
   });
 
   it('shows generic error on network failure', async () => {

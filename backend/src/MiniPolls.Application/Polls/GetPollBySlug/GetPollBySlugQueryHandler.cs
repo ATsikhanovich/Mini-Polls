@@ -1,17 +1,18 @@
 using MediatR;
 using MiniPolls.Application.Interfaces;
+using MiniPolls.Domain.Exceptions;
 
 namespace MiniPolls.Application.Polls.GetPollBySlug;
 
 public sealed class GetPollBySlugQueryHandler(IPollRepository pollRepository)
-    : IRequestHandler<GetPollBySlugQuery, PollDto?>
+    : IRequestHandler<GetPollBySlugQuery, PollDto>
 {
-    public async Task<PollDto?> Handle(GetPollBySlugQuery request, CancellationToken cancellationToken)
+    public async Task<PollDto> Handle(GetPollBySlugQuery request, CancellationToken cancellationToken)
     {
         var poll = await pollRepository.GetBySlugAsync(request.Slug, cancellationToken);
 
         if (poll is null)
-            return null;
+            throw PollNotFoundException.ForSlug(request.Slug);
 
         var options = poll.Options
             .OrderBy(o => o.SortOrder)

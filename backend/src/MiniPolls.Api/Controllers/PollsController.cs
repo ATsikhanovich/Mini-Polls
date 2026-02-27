@@ -48,10 +48,6 @@ public sealed class PollsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetPollBySlug(string slug, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetPollBySlugQuery(slug), cancellationToken);
-
-        if (result is null)
-            return NotFound();
-
         return Ok(result);
     }
 
@@ -59,10 +55,6 @@ public sealed class PollsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetPollByManagementToken(string token, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetPollByManagementTokenQuery(token), cancellationToken);
-
-        if (result is null)
-            return NotFound();
-
         return Ok(result);
     }
 
@@ -110,10 +102,6 @@ public sealed class PollsController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> GetResults(string slug, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetResultsQuery(slug), cancellationToken);
-
-        if (result is null)
-            return NotFound();
-
         return Ok(result);
     }
 

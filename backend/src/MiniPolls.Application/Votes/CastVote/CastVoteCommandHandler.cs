@@ -14,7 +14,7 @@ public sealed class CastVoteCommandHandler(
         var poll = await pollRepository.GetBySlugAsync(request.Slug, cancellationToken);
 
         if (poll is null)
-            throw new PollNotFoundException(request.Slug);
+            throw PollNotFoundException.ForSlug(request.Slug);
 
         if (poll.IsClosed)
             throw new PollClosedException();
