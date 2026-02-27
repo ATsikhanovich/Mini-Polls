@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createPoll, getPollBySlug, castVote, checkVote, getResults, getPollByManagementToken, ApiError } from '../../src/api/polls';
+import { createPoll, getPollBySlug, castVote, checkVote, getResults, getPollByManagementToken, setPollExpiration, closePoll, ApiError } from '../../src/api/polls';
 
 const mockFetch = vi.fn<typeof fetch>();
 
@@ -374,5 +374,137 @@ describe('getPollByManagementToken', () => {
   it('throws on network failure', async () => {
     mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await expect(getPollByManagementToken('my-token')).rejects.toThrow(TypeError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setPollExpiration
+// ---------------------------------------------------------------------------
+
+describe('setPollExpiration', () => {
+  const setPollExpirationPayload = {
+    id: 'poll-1',
+    expiresAt: '2026-03-15T18:00:00Z',
+  };
+
+  it('sends PUT to /polls/{token}/expiration with JSON body containing expiresAt', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(setPollExpirationPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await setPollExpiration('my-token', { expiresAt: '2026-03-15T18:00:00Z' });
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/my-token\/expiration$/);
+    expect(init.method).toBe('PUT');
+    expect(init.body).toBe(JSON.stringify({ expiresAt: '2026-03-15T18:00:00Z' }));
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+  });
+
+  it('returns parsed SetExpirationResponse on 200', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(setPollExpirationPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await setPollExpiration('my-token', { expiresAt: '2026-03-15T18:00:00Z' });
+    expect(result).toEqual(setPollExpirationPayload);
+  });
+
+  it('throws ApiError with status 404 when token not found', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(
+      setPollExpiration('missing', { expiresAt: '2026-03-15T18:00:00Z' }),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('throws ApiError with status 400 on validation error (past date)', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Validation failed', errors: { ExpiresAt: ['Past'] } }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(
+      setPollExpiration('my-token', { expiresAt: '2020-01-01T00:00:00Z' }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('throws on network failure', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(
+      setPollExpiration('my-token', { expiresAt: '2026-03-15T18:00:00Z' }),
+    ).rejects.toThrow(TypeError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// closePoll
+// ---------------------------------------------------------------------------
+
+describe('closePoll', () => {
+  const closePollPayload = {
+    id: 'poll-1',
+    isClosed: true,
+    closedAt: '2026-02-27T12:00:00Z',
+  };
+
+  it('sends POST to /polls/{token}/close with no body', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(closePollPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await closePoll('my-token');
+
+    const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toMatch(/\/polls\/my-token\/close$/);
+    expect(init.method).toBe('POST');
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Content-Type']).toBe('application/json');
+    expect(init.body).toBeUndefined();
+  });
+
+  it('returns parsed ClosePollResponse on 200', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify(closePollPayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await closePoll('my-token');
+    expect(result).toEqual(closePollPayload);
+  });
+
+  it('throws ApiError with status 404 when token not found', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(JSON.stringify({ title: 'Not Found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(closePoll('missing')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('throws on network failure', async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(closePoll('my-token')).rejects.toThrow(TypeError);
   });
 });

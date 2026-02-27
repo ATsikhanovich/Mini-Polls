@@ -49,6 +49,9 @@ import type {
   VoteCheckResponse,
   PollResults,
   ManagementPoll,
+  SetExpirationRequest,
+  SetExpirationResponse,
+  ClosePollResponse,
 } from '../types/poll';
 
 // ---------------------------------------------------------------------------
@@ -89,6 +92,24 @@ export function getResults(slug: string): Promise<PollResults> {
 /** GET /api/polls/by-token/{token} — Load poll for management page */
 export function getPollByManagementToken(token: string): Promise<ManagementPoll> {
   return request<ManagementPoll>(`/polls/by-token/${token}`);
+}
+
+/** PUT /api/polls/{token}/expiration — Set or update poll expiration */
+export function setPollExpiration(
+  token: string,
+  data: SetExpirationRequest,
+): Promise<SetExpirationResponse> {
+  return request<SetExpirationResponse>(`/polls/${token}/expiration`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+/** POST /api/polls/{token}/close — Manually close a poll */
+export function closePoll(token: string): Promise<ClosePollResponse> {
+  return request<ClosePollResponse>(`/polls/${token}/close`, {
+    method: 'POST',
+  });
 }
 
 export { request };

@@ -76,3 +76,14 @@ export interface VoteCheckResponse {
 export interface SetExpirationRequest {
   expiresAt: string; // ISO 8601, must be in the future
 }
+
+export interface SetExpirationResponse {
+  id: string;
+  expiresAt: string | null;
+}
+
+export interface ClosePollResponse {
+  id: string;
+  isClosed: boolean;
+  closedAt: string | null;
+}

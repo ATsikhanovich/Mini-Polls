@@ -66,6 +66,10 @@ test.describe('Create Poll page', () => {
     await expect(opts).toHaveCount(2);
   });
 
+  test('renders an optional expiration date input', async ({ page }) => {
+    await expect(page.getByLabel(/expiration date/i)).toBeVisible();
+  });
+
   test('renders 2 disabled remove buttons on load', async ({ page }) => {
     const removeBtns = page.getByRole('button', { name: /remove option/i });
     await expect(removeBtns).toHaveCount(2);
@@ -176,6 +180,73 @@ test.describe('Create Poll page', () => {
     await expect(page).toHaveURL('/poll-created');
     expect(requestBody.question).toBe('My Q');
     expect(requestBody.options).toEqual(['Opt A', 'Opt B']);
+  });
+
+  test('submits poll without expiration when picker is empty', async ({ page }) => {
+    let requestBody: Record<string, unknown> = {};
+    await page.route('**/api/polls', (route) => {
+      requestBody = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>;
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          slug: 'test1',
+          managementToken: 'mgmt-tok',
+        }),
+      });
+    });
+
+    await page.getByRole('textbox', { name: /poll question/i }).fill('Favourite colour?');
+    await page.getByRole('textbox', { name: /option 1/i }).fill('Red');
+    await page.getByRole('textbox', { name: /option 2/i }).fill('Blue');
+    await page.getByRole('button', { name: /^create$/i }).click();
+
+    await expect(page).toHaveURL('/poll-created');
+    expect(requestBody.expiresAt).toBeUndefined();
+  });
+
+  test('submits poll with expiration when picker is filled', async ({ page }) => {
+    let requestBody: Record<string, unknown> = {};
+    await page.route('**/api/polls', (route) => {
+      requestBody = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>;
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          slug: 'test1',
+          managementToken: 'mgmt-tok',
+        }),
+      });
+    });
+
+    await page.getByRole('textbox', { name: /poll question/i }).fill('Favourite colour?');
+    await page.getByRole('textbox', { name: /option 1/i }).fill('Red');
+    await page.getByRole('textbox', { name: /option 2/i }).fill('Blue');
+    await page.getByLabel(/expiration date/i).fill('2026-03-15T18:00');
+    await page.getByRole('button', { name: /^create$/i }).click();
+
+    await expect(page).toHaveURL('/poll-created');
+    expect(typeof requestBody.expiresAt).toBe('string');
+    expect(new Date(requestBody.expiresAt as string).toISOString()).toBe(requestBody.expiresAt);
+  });
+
+  test('shows validation error when expiration is in the past', async ({ page }) => {
+    let postCalls = 0;
+    await page.route('**/api/polls', (route) => {
+      if (route.request().method() === 'POST') {
+        postCalls += 1;
+      }
+      route.continue();
+    });
+
+    await page.getByRole('textbox', { name: /poll question/i }).fill('Q');
+    await page.getByRole('textbox', { name: /option 1/i }).fill('A');
+    await page.getByRole('textbox', { name: /option 2/i }).fill('B');
+    await page.getByLabel(/expiration date/i).fill('2020-01-01T10:00');
+    await page.getByRole('button', { name: /^create$/i }).click();
+
+    await expect(page.getByText(/future/i)).toBeVisible();
+    expect(postCalls).toBe(0);
   });
 
   test('button shows "Creating…" while request is in flight', async ({ page }) => {

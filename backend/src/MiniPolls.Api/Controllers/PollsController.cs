@@ -1,8 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using MiniPolls.Application.Polls.ClosePoll;
 using MiniPolls.Application.Polls.CreatePoll;
 using MiniPolls.Application.Polls.GetPollByManagementToken;
 using MiniPolls.Application.Polls.GetPollBySlug;
+using MiniPolls.Application.Polls.SetPollExpiration;
 using MiniPolls.Application.Votes.CastVote;
 using MiniPolls.Application.Votes.CheckVote;
 using MiniPolls.Application.Votes.GetResults;
@@ -16,6 +18,8 @@ public sealed record CreatePollRequest(
     DateTimeOffset? ExpiresAt);
 
 public sealed record CastVoteRequest(Guid OptionId);
+
+public sealed record SetPollExpirationRequest(DateTimeOffset ExpiresAt);
 
 public sealed record DuplicateVoteResponse(
     string Message,
@@ -59,6 +63,25 @@ public sealed class PollsController(IMediator mediator) : ControllerBase
         if (result is null)
             return NotFound();
 
+        return Ok(result);
+    }
+
+    [HttpPost("{token}/close")]
+    public async Task<IActionResult> ClosePoll(string token, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ClosePollCommand(token), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPut("{token}/expiration")]
+    public async Task<IActionResult> SetPollExpiration(
+        string token,
+        [FromBody] SetPollExpirationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new SetPollExpirationCommand(token, request.ExpiresAt),
+            cancellationToken);
         return Ok(result);
     }
 

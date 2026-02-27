@@ -36,7 +36,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 });
 
 describe('CreatePollPage', () => {
@@ -45,6 +45,11 @@ describe('CreatePollPage', () => {
     expect(screen.getByRole('textbox', { name: /poll question/i })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /option 1/i })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /option 2/i })).toBeInTheDocument();
+  });
+
+  it('renders an expiration date input', () => {
+    renderPage();
+    expect(screen.getByLabelText(/expiration date/i)).toBeInTheDocument();
   });
 
   it('"Add option" button appends a new input field', async () => {
@@ -111,6 +116,7 @@ describe('CreatePollPage', () => {
       expect(mockCreatePoll).toHaveBeenCalledWith({
         question: 'Best color?',
         options: ['Red', 'Blue'],
+        expiresAt: undefined,
       });
     });
 
@@ -140,6 +146,67 @@ describe('CreatePollPage', () => {
     await user.click(screen.getByRole('button', { name: /^create$/i }));
 
     expect(await screen.findByText('Question must not be empty.')).toBeInTheDocument();
+  });
+
+  it('submits with expiration when picker is filled with a future date', async () => {
+    const user = userEvent.setup();
+    mockCreatePoll.mockResolvedValueOnce({
+      slug: 'exp12',
+      managementToken: 'tok-exp',
+    });
+
+    const future = '2099-12-31T23:59';
+
+    renderPage();
+    await user.type(screen.getByRole('textbox', { name: /poll question/i }), 'Q');
+    await user.type(screen.getByRole('textbox', { name: /option 1/i }), 'A');
+    await user.type(screen.getByRole('textbox', { name: /option 2/i }), 'B');
+    await user.type(screen.getByLabelText(/expiration date/i), future);
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(mockCreatePoll).toHaveBeenCalledOnce();
+    });
+
+    const payload = mockCreatePoll.mock.calls[0][0];
+    expect(payload.expiresAt).toBeTruthy();
+    expect(new Date(payload.expiresAt as string).toISOString()).toBe(payload.expiresAt);
+  });
+
+  it('shows validation error when expiration is in the past', async () => {
+    const user = userEvent.setup();
+    const past = new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 16);
+
+    renderPage();
+    await user.type(screen.getByRole('textbox', { name: /poll question/i }), 'Q');
+    await user.type(screen.getByRole('textbox', { name: /option 1/i }), 'A');
+    await user.type(screen.getByRole('textbox', { name: /option 2/i }), 'B');
+    await user.type(screen.getByLabelText(/expiration date/i), past);
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    expect(await screen.findByText(/expiration date must be in the future/i)).toBeInTheDocument();
+    expect(mockCreatePoll).not.toHaveBeenCalled();
+  });
+
+  it('maps server 400 error for ExpiresAt field to inline error', async () => {
+    const user = userEvent.setup();
+    mockCreatePoll.mockRejectedValueOnce(
+      new ApiError(400, {
+        title: 'Validation failed',
+        errors: { ExpiresAt: ['Expiration date must be in the future.'] },
+      }),
+    );
+
+    const future = '2099-12-31T23:59';
+
+    renderPage();
+    await user.type(screen.getByRole('textbox', { name: /poll question/i }), 'Q');
+    await user.type(screen.getByRole('textbox', { name: /option 1/i }), 'A');
+    await user.type(screen.getByRole('textbox', { name: /option 2/i }), 'B');
+    await user.type(screen.getByLabelText(/expiration date/i), future);
+    await user.click(screen.getByRole('button', { name: /^create$/i }));
+
+    expect(await screen.findByText('Expiration date must be in the future.')).toBeInTheDocument();
   });
 
   it('displays generic error message on network failure', async () => {

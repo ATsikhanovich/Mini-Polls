@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ApiError } from '../../src/api/polls';
@@ -8,6 +8,8 @@ vi.mock('../../src/api/polls', async (importOriginal) => {
   return {
     ...actual,
     getPollByManagementToken: vi.fn(),
+    setPollExpiration: vi.fn(),
+    closePoll: vi.fn(),
   };
 });
 
@@ -19,8 +21,10 @@ vi.mock('react-router-dom', async (importOriginal) => {
   };
 });
 
-import { getPollByManagementToken } from '../../src/api/polls';
+import { closePoll, getPollByManagementToken, setPollExpiration } from '../../src/api/polls';
 const mockGetPollByManagementToken = vi.mocked(getPollByManagementToken);
+const mockSetPollExpiration = vi.mocked(setPollExpiration);
+const mockClosePoll = vi.mocked(closePoll);
 
 import ManagePage from '../../src/pages/ManagePage';
 
@@ -48,6 +52,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
@@ -132,5 +137,220 @@ describe('ManagePage', () => {
     mockGetPollByManagementToken.mockRejectedValue(new TypeError('Failed to fetch'));
     renderPage();
     expect(await screen.findByText(/something went wrong/i)).toBeTruthy();
+  });
+
+  it('shows expiration form for active poll', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    renderPage();
+
+    expect(await screen.findByLabelText(/expiration date/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
+  });
+
+  it('does not show expiration form for closed poll', async () => {
+    mockGetPollByManagementToken.mockResolvedValue({
+      ...managementPollFixture,
+      isClosed: true,
+      closedAt: '2026-02-01T00:00:00Z',
+    });
+    renderPage();
+
+    await screen.findByText('Closed');
+    expect(screen.queryByLabelText(/expiration date/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
+  });
+
+  it('pre-fills expiration input when poll has an existing expiresAt', async () => {
+    mockGetPollByManagementToken.mockResolvedValue({
+      ...managementPollFixture,
+      expiresAt: '2026-03-15T18:00:00Z',
+    });
+    renderPage();
+
+    const input = await screen.findByLabelText(/expiration date/i) as HTMLInputElement;
+    expect(input.value).toBe('2026-03-15T18:00');
+  });
+
+  it('shows "No expiration set" when poll has no expiresAt', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    renderPage();
+
+    expect(await screen.findByText(/no expiration set/i)).toBeTruthy();
+  });
+
+  it('shows current expiration date when poll has expiresAt', async () => {
+    mockGetPollByManagementToken.mockResolvedValue({
+      ...managementPollFixture,
+      expiresAt: '2026-03-15T18:00:00Z',
+    });
+    renderPage();
+
+    expect(await screen.findByText(/expires:/i)).toBeTruthy();
+  });
+
+  it('clicking Save calls setPollExpiration and refreshes data', async () => {
+    const updated = {
+      ...managementPollFixture,
+      expiresAt: '2026-03-15T18:00:00Z',
+    };
+
+    mockGetPollByManagementToken
+      .mockResolvedValueOnce(managementPollFixture)
+      .mockResolvedValueOnce(updated);
+    mockSetPollExpiration.mockResolvedValue({
+      id: 'poll-1',
+      expiresAt: '2026-03-15T18:00:00Z',
+    });
+
+    renderPage();
+
+    const input = await screen.findByLabelText(/expiration date/i);
+    fireEvent.change(input, { target: { value: '2026-03-15T18:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(mockSetPollExpiration).toHaveBeenCalledOnce();
+    });
+    expect(mockSetPollExpiration).toHaveBeenCalledWith('mgmt-tok', {
+      expiresAt: new Date('2026-03-15T18:00').toISOString(),
+    });
+    expect(mockGetPollByManagementToken).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows validation error for empty expiration on Save click', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    renderPage();
+
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    fireEvent.change(await screen.findByLabelText(/expiration date/i), { target: { value: '2020-01-01T10:00' } });
+    fireEvent.click(saveButton);
+
+    expect(await screen.findByText(/expiration date must be in the future/i)).toBeTruthy();
+    expect(mockSetPollExpiration).not.toHaveBeenCalled();
+  });
+
+  it('shows error message when setPollExpiration fails', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    mockSetPollExpiration.mockRejectedValue(new Error('boom'));
+    renderPage();
+
+    const input = await screen.findByLabelText(/expiration date/i);
+    fireEvent.change(input, { target: { value: '2026-03-15T18:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText(/failed to set expiration/i)).toBeTruthy();
+  });
+
+  it('disables Save button while request is in progress', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    mockSetPollExpiration.mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    const input = await screen.findByLabelText(/expiration date/i);
+    fireEvent.change(input, { target: { value: '2026-03-15T18:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('button', { name: 'Saving…' })).toBeDisabled();
+  });
+
+  it('shows "Close Poll" button for active poll', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Close Poll' })).toBeTruthy();
+  });
+
+  it('does not show "Close Poll" button for closed poll', async () => {
+    mockGetPollByManagementToken.mockResolvedValue({
+      ...managementPollFixture,
+      isClosed: true,
+      closedAt: '2026-02-01T00:00:00Z',
+      expiresAt: null,
+    });
+    renderPage();
+
+    await screen.findByText('Closed');
+    expect(screen.queryByRole('button', { name: 'Close Poll' })).toBeNull();
+  });
+
+  it('does not show "Close Poll" button for expired poll', async () => {
+    mockGetPollByManagementToken.mockResolvedValue({
+      ...managementPollFixture,
+      isClosed: true,
+      expiresAt: '2026-01-01T00:00:00Z',
+      closedAt: null,
+    });
+    renderPage();
+
+    await screen.findByText('Expired');
+    expect(screen.queryByRole('button', { name: 'Close Poll' })).toBeNull();
+  });
+
+  it('clicking "Close Poll" shows confirmation prompt', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    renderPage();
+    const closeButton = await screen.findByRole('button', { name: 'Close Poll' });
+    fireEvent.click(closeButton);
+
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    expect(confirmSpy.mock.calls[0][0]).toMatch(/close/i);
+    expect(mockClosePoll).not.toHaveBeenCalled();
+  });
+
+  it('confirming close calls closePoll and refreshes data', async () => {
+    const closedPoll = {
+      ...managementPollFixture,
+      isClosed: true,
+      closedAt: '2026-02-27T12:00:00Z',
+      expiresAt: null,
+    };
+
+    mockGetPollByManagementToken
+      .mockResolvedValueOnce(managementPollFixture)
+      .mockResolvedValueOnce(closedPoll);
+    mockClosePoll.mockResolvedValue({
+      id: 'poll-1',
+      isClosed: true,
+      closedAt: '2026-02-27T12:00:00Z',
+    });
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderPage();
+    const closeButton = await screen.findByRole('button', { name: 'Close Poll' });
+    fireEvent.click(closeButton);
+
+    await waitFor(() => {
+      expect(mockClosePoll).toHaveBeenCalledOnce();
+      expect(mockClosePoll).toHaveBeenCalledWith('mgmt-tok');
+    });
+
+    expect(await screen.findByText('Closed')).toBeTruthy();
+  });
+
+  it('shows error message when close fails', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    mockClosePoll.mockRejectedValue(new Error('boom'));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderPage();
+    const closeButton = await screen.findByRole('button', { name: 'Close Poll' });
+    fireEvent.click(closeButton);
+
+    expect(await screen.findByText(/failed to close/i)).toBeTruthy();
+  });
+
+  it('disables button while close is in progress', async () => {
+    mockGetPollByManagementToken.mockResolvedValue(managementPollFixture);
+    mockClosePoll.mockReturnValue(new Promise(() => {}));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    renderPage();
+    const closeButton = await screen.findByRole('button', { name: 'Close Poll' });
+    fireEvent.click(closeButton);
+
+    expect(await screen.findByRole('button', { name: 'Closing…' })).toBeDisabled();
   });
 });

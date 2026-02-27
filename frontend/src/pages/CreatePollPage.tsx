@@ -8,13 +8,21 @@ interface FormErrors {
   question?: string;
   options?: string;
   optionItems?: Record<number, string>;
+  expiresAt?: string;
 }
+
+const toDateTimeLocalMin = () => {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
 
 export default function CreatePollPage() {
   const navigate = useNavigate();
 
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
+  const [expiresAt, setExpiresAt] = useState<string>('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -61,6 +69,10 @@ export default function CreatePollPage() {
       newErrors.options = 'At least 2 options are required';
     }
 
+    if (expiresAt && new Date(expiresAt) <= new Date()) {
+      newErrors.expiresAt = 'Expiration date must be in the future';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -71,6 +83,7 @@ export default function CreatePollPage() {
       const response: CreatePollResponse = await createPoll({
         question: question.trim(),
         options: options.map((o) => o.trim()).filter((o) => o.length > 0),
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
       });
       const votingUrl = `${window.location.origin}/p/${response.slug}`;
       const managementUrl = `${window.location.origin}/manage/${response.managementToken}`;
@@ -94,6 +107,9 @@ export default function CreatePollPage() {
             }
             if (errorsMap['Options']) {
               mapped.options = errorsMap['Options'][0];
+            }
+            if (errorsMap['ExpiresAt']) {
+              mapped.expiresAt = errorsMap['ExpiresAt'][0];
             }
           } else if (body['title']) {
             setSubmitError(body['title'] as string);
@@ -182,6 +198,23 @@ export default function CreatePollPage() {
           >
             + Add option
           </button>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
+            Expiration (optional)
+          </p>
+          <input
+            type="datetime-local"
+            aria-label="Expiration date"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
+            min={toDateTimeLocalMin()}
+            className="w-full bg-[#2a2a2a] border border-white/10 rounded-[var(--radius-input)] px-3 py-2
+              text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+            style={{ colorScheme: 'dark' }}
+          />
+          <ErrorMessage message={errors.expiresAt} />
         </div>
 
         {/* Submit */}
