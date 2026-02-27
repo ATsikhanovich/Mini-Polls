@@ -14,8 +14,6 @@ async function mockCreatePollSuccess(page: Page) {
       body: JSON.stringify({
         slug: 'test1',
         managementToken: 'mgmt-tok',
-        votingUrl: 'http://localhost:3000/p/test1',
-        managementUrl: 'http://localhost:3000/manage/mgmt-tok',
       }),
     });
   });
@@ -187,8 +185,6 @@ test.describe('Create Poll page', () => {
         body: JSON.stringify({
           slug: 'x',
           managementToken: 't',
-          votingUrl: 'http://localhost:3000/p/x',
-          managementUrl: 'http://localhost:3000/manage/t',
         }),
       });
     });

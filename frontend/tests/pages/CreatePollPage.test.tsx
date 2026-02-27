@@ -99,8 +99,6 @@ describe('CreatePollPage', () => {
     mockCreatePoll.mockResolvedValueOnce({
       slug: 'abc12',
       managementToken: 'tok',
-      votingUrl: 'http://localhost/p/abc12',
-      managementUrl: 'http://localhost/manage/tok',
     });
 
     renderPage();
@@ -118,8 +116,8 @@ describe('CreatePollPage', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/poll-created', {
       state: {
-        votingUrl: 'http://localhost/p/abc12',
-        managementUrl: 'http://localhost/manage/tok',
+        votingUrl: 'http://localhost:3000/p/abc12',
+        managementUrl: 'http://localhost:3000/manage/tok',
         slug: 'abc12',
         managementToken: 'tok',
       },

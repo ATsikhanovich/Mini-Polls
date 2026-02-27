@@ -72,10 +72,12 @@ export default function CreatePollPage() {
         question: question.trim(),
         options: options.map((o) => o.trim()).filter((o) => o.length > 0),
       });
+      const votingUrl = `${window.location.origin}/p/${response.slug}`;
+      const managementUrl = `${window.location.origin}/manage/${response.managementToken}`;
       navigate('/poll-created', {
         state: {
-          votingUrl: response.votingUrl,
-          managementUrl: response.managementUrl,
+          votingUrl,
+          managementUrl,
           slug: response.slug,
           managementToken: response.managementToken,
         },

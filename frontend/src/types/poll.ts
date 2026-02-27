@@ -39,8 +39,6 @@ export interface CreatePollRequest {
 export interface CreatePollResponse {
   slug: string;
   managementToken: string;
-  votingUrl: string;
-  managementUrl: string;
 }
 
 export interface CastVoteRequest {
