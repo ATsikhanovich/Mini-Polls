@@ -45,9 +45,11 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
 
-    // Auto-apply migrations in development to reduce friction
-    using var scope = app.Services.CreateScope();
+// Auto-apply migrations on startup so containerized deployments initialize SQLite schema.
+using (var scope = app.Services.CreateScope())
+{
     var db = scope.ServiceProvider.GetRequiredService<MiniPollsDbContext>();
     await db.Database.MigrateAsync();
 }

@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files first to leverage Docker layer caching
-COPY MiniPolls.sln .
+COPY MiniPolls.slnx .
 COPY src/MiniPolls.Domain/MiniPolls.Domain.csproj src/MiniPolls.Domain/
 COPY src/MiniPolls.Application/MiniPolls.Application.csproj src/MiniPolls.Application/
 COPY src/MiniPolls.Infrastructure/MiniPolls.Infrastructure.csproj src/MiniPolls.Infrastructure/
