@@ -18,6 +18,21 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             logger.LogWarning("Validation failed: {Errors}", ex.Message);
             await WriteValidationProblem(context, ex);
         }
+        catch (PollNotFoundException ex)
+        {
+            logger.LogWarning("Poll not found: {Message}", ex.Message);
+            await WriteProblem(context, (int)HttpStatusCode.NotFound, "Poll not found", ex.Message);
+        }
+        catch (PollClosedException ex)
+        {
+            logger.LogWarning("Poll is closed: {Message}", ex.Message);
+            await WriteProblem(context, (int)HttpStatusCode.Gone, "Poll is closed", ex.Message);
+        }
+        catch (DuplicateVoteException ex)
+        {
+            logger.LogWarning("Duplicate vote: {Message}", ex.Message);
+            await WriteProblem(context, (int)HttpStatusCode.Conflict, "Duplicate vote", ex.Message);
+        }
         catch (DomainException ex)
         {
             logger.LogWarning("Domain rule violated: {Message}", ex.Message);
@@ -62,6 +77,22 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             Title = "Domain rule violated",
             Type = "https://tools.ietf.org/html/rfc7807",
             Detail = ex.Message
+        };
+
+        await context.Response.WriteAsJsonAsync(problem);
+    }
+
+    private static async Task WriteProblem(HttpContext context, int statusCode, string title, string detail)
+    {
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/problem+json";
+
+        var problem = new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Type = "https://tools.ietf.org/html/rfc7807",
+            Detail = detail
         };
 
         await context.Response.WriteAsJsonAsync(problem);
