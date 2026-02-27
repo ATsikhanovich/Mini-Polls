@@ -40,11 +40,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+import type { CreatePollRequest, CreatePollResponse } from '../types/poll';
+
 // ---------------------------------------------------------------------------
 // Polls
 // ---------------------------------------------------------------------------
 
-// POST /api/polls — Create a new poll
+/** POST /api/polls — Create a new poll */
+export function createPoll(data: CreatePollRequest): Promise<CreatePollResponse> {
+  return request<CreatePollResponse>('/polls', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 // GET  /api/polls/by-slug/{slug} — Load poll for voting page
 // GET  /api/polls/by-token/{token} — Load poll for management page
 // PUT  /api/polls/{token}/expiration — Set/update expiration

@@ -20,7 +20,8 @@ These instructions apply to the `frontend/` folder and govern all frontend code 
 | Styling            | Tailwind CSS (utility-first, no component library) |
 | HTTP Client        | Native `fetch` API                        |
 | Form Handling      | Manual state handling (no form library)   |
-| Testing            | Vitest + React Testing Library            |
+| Unit / Component Testing | Vitest + React Testing Library       |
+| E2E Testing        | Playwright                                |
 | Package Manager    | npm                                       |
 
 Do **not** add libraries beyond the above unless explicitly approved. Keep dependencies minimal.
@@ -37,6 +38,7 @@ frontend/
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
+├── playwright.config.ts            # Playwright E2E configuration
 ├── tailwind.config.ts
 ├── postcss.config.js
 ├── public/
@@ -67,10 +69,13 @@ frontend/
 │   │   └── formatPercent.ts        # Example: percentage formatting
 │   └── styles/
 │       └── index.css               # Tailwind directives (@tailwind base, etc.)
-└── tests/
-    ├── setup.ts                    # Vitest + RTL global setup
-    ├── components/                 # Component-level tests
-    └── pages/                      # Page-level tests
+├── tests/                          # Vitest + RTL unit/component tests
+│   ├── setup.ts                    # Vitest + RTL global setup
+│   ├── api/                        # API function tests
+│   ├── components/                 # Component-level tests
+│   └── pages/                      # Page-level tests
+└── e2e/                            # Playwright end-to-end tests
+    └── *.spec.ts                   # One spec file per page / user flow
 ```
 
 ### Conventions
@@ -304,25 +309,108 @@ Adjust field names to match the actual backend API response DTOs. These types se
 
 ## 9. Testing
 
-### 9.1 General Rules
+The project uses **two complementary testing layers**:
+
+| Layer | Tool | Location | Scope |
+| ----- | ---- | -------- | ----- |
+| Unit / Component | Vitest + React Testing Library | `tests/` | Logic, component rendering, API helpers |
+| End-to-End | Playwright | `e2e/` | Full user flows in a real browser |
+
+Run scripts:
+
+```bash
+npm test            # Vitest unit/component tests
+npm run test:e2e    # Playwright E2E tests (headless)
+npm run test:e2e:ui # Playwright with interactive UI mode
+```
+
+---
+
+### 9.1 Unit & Component Tests (Vitest + RTL)
+
+#### Rules
 
 - Use **Vitest** as the test runner and **React Testing Library** for component rendering.
-- Configure in `vite.config.ts` (`test` block) and a `tests/setup.ts` file for global RTL setup (`@testing-library/jest-dom` matchers).
+- Configure in `vite.config.ts` (`test` block) and `tests/setup.ts` for global RTL setup (`@testing-library/jest-dom` matchers).
 - Follow the **Arrange / Act / Assert** pattern.
-- Name test files: `ComponentName.test.tsx` or `utilName.test.ts`, co-located in the `tests/` directory mirroring the source structure.
+- Name test files `ComponentName.test.tsx` or `utilName.test.ts`, mirroring the source structure under `tests/`.
 
-### 9.2 What to Test
+#### What to test
 
-- **Pages**: render correctly for key states (loading, data loaded, error, empty), user interactions (filling form, clicking buttons), and navigation.
-- **Components**: render with various props, handle callbacks.
-- **API functions**: mock `fetch` and verify correct URLs, methods, headers, and body serialisation.
+- **Components**: render with various props, handle callbacks, edge-case rendering (null/empty data).
+- **Pages**: key states (loading, loaded, error, empty), user interactions, navigation side effects.
+- **API functions**: verify correct URL, method, headers, body serialisation, and error throwing.
 - **Utility functions**: pure unit tests.
 
-### 9.3 Mocking
+#### Mocking
 
-- Mock `fetch` globally or per-test using `vi.fn()` / `vi.spyOn(globalThis, 'fetch')`.
-- Mock React Router navigation (`useNavigate`) when testing navigation side effects.
+- Mock `fetch` per-test using `vi.stubGlobal('fetch', vi.fn())` and restore with `vi.unstubAllGlobals()` in `afterEach`. Do **not** use `vi.spyOn(globalThis, 'fetch')` — it can leak through to real network calls when `mockReset()` is called without also clearing the implementation.
+- Mock React Router navigation (`useNavigate`) with `vi.mock('react-router-dom', ...)` when testing navigation side effects.
 - Do **not** mock Zustand stores in component tests — test with real stores and initial state.
+
+---
+
+### 9.2 End-to-End Tests (Playwright)
+
+#### Configuration (`playwright.config.ts`)
+
+- `testDir`: `./e2e`
+- `baseURL`: `http://localhost:3000`
+- `webServer`: auto-start `npm run dev`; set `reuseExistingServer: true` for local development speed.
+- Run Chromium only by default. Add Firefox/WebKit for CI if needed.
+- Enable `trace: 'on-first-retry'` for debugging flaky tests.
+
+#### File naming & organisation
+
+- One spec file per page or user flow: `e2e/create-poll.spec.ts`, `e2e/vote.spec.ts`, `e2e/results.spec.ts`, etc.
+- Group related scenarios with `test.describe`.
+- Use `test.beforeEach` to navigate to the correct starting URL.
+
+#### API mocking with `page.route()`
+
+E2E tests must **not** hit a live backend. Intercept all API calls using `page.route()` so tests are deterministic and run without a running server:
+
+```ts
+await page.route('**/api/polls', (route) => {
+  if (route.request().method() !== 'POST') return route.continue();
+  route.fulfill({
+    status: 201,
+    contentType: 'application/json',
+    body: JSON.stringify({ slug: 'abc12', managementToken: 'tok', ... }),
+  });
+});
+```
+
+- Extract common `route.fulfill` helpers (e.g., `mockCreatePollSuccess(page)`) at the top of each spec file to avoid duplication.
+- For network-failure scenarios use `route.abort('failed')`.
+- For loading-state tests, delay the response with a short `setTimeout` inside the handler.
+
+#### What to cover in E2E
+
+Focus on **user-visible behaviour** and **full flows**. Do not duplicate low-level logic already covered by unit tests.
+
+| Area | Scenarios |
+| ---- | --------- |
+| Layout | Header renders, navigation link works |
+| Form rendering | All inputs visible, correct placeholder text, initial state |
+| Option management | Add option, remove option, remove disabled at minimum count |
+| Client-side validation | Error messages appear on submit without API call |
+| Submission | Correct data sent (verify request body), navigation on success |
+| Loading state | Button label/disabled state while request is in-flight |
+| API 400 errors | Inline validation messages mapped from `ProblemDetails` |
+| Network failures | Generic error message displayed |
+
+#### Selectors
+
+- Prefer **ARIA role + accessible name** selectors (`page.getByRole`, `page.getByLabel`) over CSS selectors or test IDs.
+- Use `page.getByText` only for non-interactive visible text.
+- Avoid `page.locator('div.some-class')` — it couples tests to styling.
+
+#### Assertions
+
+- Use `expect(locator).toBeVisible()`, `toBeDisabled()`, `toHaveURL()`, `toHaveCount()`, `toHaveAttribute()` — all auto-retry until timeout.
+- Avoid `page.waitForTimeout()` — use auto-waiting locator assertions instead.
+- Verify request payloads by capturing the body inside the `page.route()` handler when the exact data sent matters.
 
 ---
 
