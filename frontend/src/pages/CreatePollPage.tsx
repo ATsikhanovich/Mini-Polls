@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPoll, ApiError } from '../api/polls';
+import { DateTimePicker } from '../components/DateTimePicker';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { TextInput } from '../components/TextInput';
 import type { CreatePollResponse } from '../types/poll';
+import { getDateTimeLocalMin } from '../utils/dateTime';
 
 interface FormErrors {
   question?: string;
@@ -11,18 +14,12 @@ interface FormErrors {
   expiresAt?: string;
 }
 
-const toDateTimeLocalMin = () => {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
-};
-
 export default function CreatePollPage() {
   const navigate = useNavigate();
 
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState<string[]>(['', '']);
-  const [expiresAt, setExpiresAt] = useState<string>('');
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -83,7 +80,7 @@ export default function CreatePollPage() {
       const response: CreatePollResponse = await createPoll({
         question: question.trim(),
         options: options.map((o) => o.trim()).filter((o) => o.length > 0),
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : undefined,
+        expiresAt: expiresAt ?? undefined,
       });
       const votingUrl = `${window.location.origin}/p/${response.slug}`;
       const managementUrl = `${window.location.origin}/manage/${response.managementToken}`;
@@ -133,16 +130,14 @@ export default function CreatePollPage() {
       <form onSubmit={handleSubmit} noValidate>
         {/* Question */}
         <div className="mb-6">
-          <input
+          <TextInput
             type="text"
             id="question"
             aria-label="Poll question"
             placeholder="What's on your mind?..."
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            className="w-full bg-[#2a2a2a] border border-white/10 rounded-[var(--radius-input)] px-4 py-3
-              text-[#f8f8f8] placeholder:text-white/40 placeholder:italic
-              focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+            className="w-full px-4 py-3 placeholder:text-white/40 placeholder:italic"
           />
           <ErrorMessage message={errors.question} />
         </div>
@@ -159,15 +154,13 @@ export default function CreatePollPage() {
                     {index + 1}.
                   </span>
                   {/* Option input */}
-                  <input
+                  <TextInput
                     type="text"
                     aria-label={`Option ${index + 1}`}
                     placeholder={index >= 2 ? 'What else?' : `Option #${index + 1}`}
                     value={opt}
                     onChange={(e) => handleOptionChange(index, e.target.value)}
-                    className="flex-1 bg-[#2a2a2a] border border-white/10 rounded-[var(--radius-input)] px-3 py-2
-                      text-[#f8f8f8] placeholder:text-white/40 placeholder:italic text-sm
-                      focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
+                    className="flex-1 placeholder:text-white/40 placeholder:italic text-sm"
                   />
                   {/* Remove button */}
                   <button
@@ -204,15 +197,12 @@ export default function CreatePollPage() {
           <p className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
             Expiration (optional)
           </p>
-          <input
-            type="datetime-local"
-            aria-label="Expiration date"
+          <DateTimePicker
             value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-            min={toDateTimeLocalMin()}
-            className="w-full bg-[#2a2a2a] border border-white/10 rounded-[var(--radius-input)] px-3 py-2
-              text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-            style={{ colorScheme: 'dark' }}
+            onChange={setExpiresAt}
+            min={getDateTimeLocalMin()}
+            aria-label="Expiration date and time"
+            className="w-full"
           />
           <ErrorMessage message={errors.expiresAt} />
         </div>

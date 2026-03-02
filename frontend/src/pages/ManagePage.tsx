@@ -1,20 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiError, closePoll, getPollByManagementToken, setPollExpiration } from '../api/polls';
+import { DateTimePicker } from '../components/DateTimePicker';
 import { CopyButton } from '../components/CopyButton';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { ProgressBar } from '../components/ProgressBar';
 import { StatusBadge } from '../components/StatusBadge';
 import type { ManagementPoll } from '../types/poll';
 import { derivePollStatus } from '../utils/derivePollStatus';
+import { getDateTimeLocalMin } from '../utils/dateTime';
 import NotFoundPage from './NotFoundPage';
-
-const toDateTimeLocalMin = () => {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
-};
-const toDateTimeLocalValue = (iso: string | null) => (iso ? iso.slice(0, 16) : '');
 
 export default function ManagePage() {
   const { token } = useParams<{ token: string }>();
@@ -25,7 +20,7 @@ export default function ManagePage() {
   const [notFound, setNotFound] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeError, setCloseError] = useState<string | null>(null);
-  const [expirationInput, setExpirationInput] = useState('');
+  const [expirationInput, setExpirationInput] = useState<string | null>(null);
   const [savingExpiration, setSavingExpiration] = useState(false);
   const [expirationError, setExpirationError] = useState<string | null>(null);
   const [expirationSuccess, setExpirationSuccess] = useState<string | null>(null);
@@ -42,7 +37,7 @@ export default function ManagePage() {
         const response = await getPollByManagementToken(token!);
         if (!cancelled) {
           setData(response);
-          setExpirationInput(toDateTimeLocalValue(response.expiresAt));
+          setExpirationInput(response.expiresAt);
         }
       } catch (err) {
         if (!cancelled) {
@@ -95,10 +90,10 @@ export default function ManagePage() {
     setExpirationSuccess(null);
 
     try {
-      await setPollExpiration(token!, { expiresAt: new Date(expirationInput).toISOString() });
+      await setPollExpiration(token!, { expiresAt: expirationInput });
       const refreshed = await getPollByManagementToken(token!);
       setData(refreshed);
-      setExpirationInput(toDateTimeLocalValue(refreshed.expiresAt));
+      setExpirationInput(refreshed.expiresAt);
       setExpirationSuccess('Expiration updated.');
       setTimeout(() => {
         setExpirationSuccess(null);
@@ -182,16 +177,14 @@ export default function ManagePage() {
             <p className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-3">
               Set Expiration
             </p>
-            <div className="flex items-center gap-3">
-              <input
-                type="datetime-local"
-                aria-label="Expiration date"
+            <div className="flex items-end gap-3">
+              <DateTimePicker
                 value={expirationInput}
-                onChange={(e) => setExpirationInput(e.target.value)}
-                min={toDateTimeLocalMin()}
-                className="flex-1 bg-[#2a2a2a] border border-white/10 rounded-[var(--radius-input)] px-3 py-2
-                  text-[#f8f8f8] text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition"
-                style={{ colorScheme: 'dark' }}
+                onChange={(iso) => setExpirationInput(iso)}
+                min={getDateTimeLocalMin()}
+                disabled={savingExpiration}
+                aria-label="Expiration date and time"
+                className="flex-1"
               />
               <button
                 type="button"

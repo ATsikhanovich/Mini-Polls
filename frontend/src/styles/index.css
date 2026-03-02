@@ -41,3 +41,14 @@ body {
   background-color: var(--color-surface-base);
   color: var(--color-text-primary);
 }
+
+/* ensure native date/time controls respect our dark theme */
+input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
+/* invert calendar icon on webkit browsers so it remains visible */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
